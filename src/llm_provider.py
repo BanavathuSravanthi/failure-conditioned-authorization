@@ -60,15 +60,44 @@ class GeminiProvider(LLMProvider):
 
     def __init__(
         self,
-        model: str = "gemini-1.5-pro",
+        model: str = "gemini-1.5-flash",
         api_key: Optional[str] = None,
         temperature: float = 0.0,
         max_retries: int = 5,
     ):
         super().__init__(model=model, temperature=temperature, max_retries=max_retries)
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
+        self.api_key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+
+        # Fallback 1: check Windows user registry
         if not self.api_key:
-            raise ValueError("GeminiProvider requires GEMINI_API_KEY environment variable or explicit api_key argument")
+            try:
+                import winreg
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as env_k:
+                    for k_name in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+                        try:
+                            val, _ = winreg.QueryValueEx(env_k, k_name)
+                            if val and isinstance(val, str) and val.strip():
+                                self.api_key = val.strip()
+                                break
+                        except FileNotFoundError:
+                            continue
+            except Exception:
+                pass
+
+        # Fallback 2: check local gitignored .env file
+        if not self.api_key and os.path.exists(".env"):
+            try:
+                with open(".env", "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("GEMINI_API_KEY=") or line.startswith("GOOGLE_API_KEY="):
+                            self.api_key = line.split("=", 1)[1].strip().strip('"').strip("'")
+                            break
+            except Exception:
+                pass
+
+        if not self.api_key:
+            raise ValueError("GeminiProvider requires GEMINI_API_KEY or GOOGLE_API_KEY environment variable or explicit api_key argument")
 
         self.endpoint = (
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
@@ -90,7 +119,7 @@ class GeminiProvider(LLMProvider):
             if role == "system":
                 # Gemini handles system in systemInstruction
                 continue
-            gemini_role = "user" if role in ("user", "tool") else "model"
+            gemini_role = "user" if role in ("user", "tool", "tool_response") else "model"
             parts = []
             if "content" in m and m["content"]:
                 parts.append({"text": m["content"]})
@@ -130,7 +159,10 @@ class GeminiProvider(LLMProvider):
         req = urllib.request.Request(
             self.endpoint,
             data=data_bytes,
-            headers={"Content-Type": "application/json"}
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": self.api_key
+            }
         )
 
         # Bounded exponential backoff retry loop
@@ -142,9 +174,21 @@ class GeminiProvider(LLMProvider):
                     resp_data = json.loads(resp.read().decode("utf-8"))
                     latency = (time.perf_counter() - start_t) * 1000.0
 
+                    usage = resp_data.get("usageMetadata", {})
+                    p_tokens = usage.get("promptTokenCount", 0)
+                    c_tokens = usage.get("candidatesTokenCount", 0)
+                    t_tokens = usage.get("totalTokenCount", 0)
+
                     candidates = resp_data.get("candidates", [])
                     if not candidates:
-                        return LLMResponse(tool_name=None, is_finish=True, latency_ms=latency)
+                        return LLMResponse(
+                            tool_name=None,
+                            is_finish=True,
+                            latency_ms=latency,
+                            prompt_tokens=p_tokens,
+                            completion_tokens=c_tokens,
+                            total_tokens=t_tokens,
+                        )
 
                     content_parts = candidates[0].get("content", {}).get("parts", [])
                     for p in content_parts:
@@ -157,14 +201,32 @@ class GeminiProvider(LLMProvider):
                                 tool_name=orig_name,
                                 arguments=args,
                                 is_finish=False,
-                                latency_ms=latency
+                                latency_ms=latency,
+                                prompt_tokens=p_tokens,
+                                completion_tokens=c_tokens,
+                                total_tokens=t_tokens,
                             )
                         if "text" in p:
                             raw_txt = p["text"]
                             if "finish" in raw_txt.lower() or "complete" in raw_txt.lower():
-                                return LLMResponse(tool_name=None, is_finish=True, raw_text=raw_txt, latency_ms=latency)
+                                return LLMResponse(
+                                    tool_name=None,
+                                    is_finish=True,
+                                    raw_text=raw_txt,
+                                    latency_ms=latency,
+                                    prompt_tokens=p_tokens,
+                                    completion_tokens=c_tokens,
+                                    total_tokens=t_tokens,
+                                )
 
-                    return LLMResponse(tool_name=None, is_finish=True, latency_ms=latency)
+                    return LLMResponse(
+                        tool_name=None,
+                        is_finish=True,
+                        latency_ms=latency,
+                        prompt_tokens=p_tokens,
+                        completion_tokens=c_tokens,
+                        total_tokens=t_tokens,
+                    )
 
             except urllib.error.HTTPError as e:
                 last_err = e
