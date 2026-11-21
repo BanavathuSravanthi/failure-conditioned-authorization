@@ -1,0 +1,8 @@
+environment:
+  tools:
+    drive.update_file:
+      success_attempt: 4
+    drive.create_file:
+      success_attempt: 1
+    drive.delete_permanently:
+      success_attempt: 1

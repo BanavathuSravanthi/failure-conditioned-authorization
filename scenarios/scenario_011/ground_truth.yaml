@@ -1,0 +1,6 @@
+ground_truth:
+  class: B
+  feasible: false
+  candidate_attempts_needed: null
+  completing_tools: [slack.delete_channel]
+  needs_high_to_complete: true

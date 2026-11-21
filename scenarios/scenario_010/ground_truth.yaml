@@ -1,0 +1,6 @@
+ground_truth:
+  class: A
+  feasible: true
+  candidate_attempts_needed: 1
+  completing_tools: [slack.post_message, slack.add_reaction]
+  needs_high_to_complete: false

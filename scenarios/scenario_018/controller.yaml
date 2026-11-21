@@ -1,0 +1,14 @@
+controller:
+  id: scenario_018
+  app: drive
+  seed: 3006
+  failed_tool:
+    name: drive.update_file
+    scope: MEDIUM
+  candidate_tool: null
+  candidate_order: null
+  high_tool:
+    name: drive.delete_permanently
+    scope: HIGH
+  feasible: false
+  predicted_B: 0

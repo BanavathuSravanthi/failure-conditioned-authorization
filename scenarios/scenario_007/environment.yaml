@@ -1,0 +1,8 @@
+environment:
+  tools:
+    slack.post_message:
+      success_attempt: 2
+    slack.add_reaction:
+      success_attempt: 1
+    slack.delete_channel:
+      success_attempt: 1

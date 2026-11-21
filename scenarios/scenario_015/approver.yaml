@@ -1,0 +1,3 @@
+authorization_policy:
+  approvable_high_tools: [drive.delete_permanently]
+  maximum_approvable_scope: HIGH

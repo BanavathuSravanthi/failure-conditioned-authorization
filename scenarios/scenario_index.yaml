@@ -1,0 +1,109 @@
+scenarios:
+  - id: scenario_001
+    canonical_id: gmail_A_1
+    app: gmail
+    class: A
+    depth: 1
+    is_thesis_subset: true
+  - id: scenario_002
+    canonical_id: gmail_A_3
+    app: gmail
+    class: A
+    depth: 3
+    is_thesis_subset: true
+  - id: scenario_003
+    canonical_id: gmail_A_3b
+    app: gmail
+    class: A
+    depth: 3
+    is_thesis_subset: false
+  - id: scenario_004
+    canonical_id: gmail_A_I
+    app: gmail
+    class: A
+    depth: I
+    is_thesis_subset: true
+  - id: scenario_005
+    canonical_id: gmail_B_I
+    app: gmail
+    class: B
+    depth: I
+    is_thesis_subset: true
+  - id: scenario_006
+    canonical_id: gmail_B_I2
+    app: gmail
+    class: B
+    depth: I
+    is_thesis_subset: false
+  - id: scenario_007
+    canonical_id: slack_A_1
+    app: slack
+    class: A
+    depth: 1
+    is_thesis_subset: true
+  - id: scenario_008
+    canonical_id: slack_A_3
+    app: slack
+    class: A
+    depth: 3
+    is_thesis_subset: true
+  - id: scenario_009
+    canonical_id: slack_A_3b
+    app: slack
+    class: A
+    depth: 3
+    is_thesis_subset: false
+  - id: scenario_010
+    canonical_id: slack_A_I
+    app: slack
+    class: A
+    depth: I
+    is_thesis_subset: true
+  - id: scenario_011
+    canonical_id: slack_B_I
+    app: slack
+    class: B
+    depth: I
+    is_thesis_subset: true
+  - id: scenario_012
+    canonical_id: slack_B_I2
+    app: slack
+    class: B
+    depth: I
+    is_thesis_subset: false
+  - id: scenario_013
+    canonical_id: drive_A_1
+    app: drive
+    class: A
+    depth: 1
+    is_thesis_subset: true
+  - id: scenario_014
+    canonical_id: drive_A_3
+    app: drive
+    class: A
+    depth: 3
+    is_thesis_subset: true
+  - id: scenario_015
+    canonical_id: drive_A_3b
+    app: drive
+    class: A
+    depth: 3
+    is_thesis_subset: false
+  - id: scenario_016
+    canonical_id: drive_A_I
+    app: drive
+    class: A
+    depth: I
+    is_thesis_subset: false
+  - id: scenario_017
+    canonical_id: drive_B_I
+    app: drive
+    class: B
+    depth: I
+    is_thesis_subset: false
+  - id: scenario_018
+    canonical_id: drive_B_I2
+    app: drive
+    class: B
+    depth: I
+    is_thesis_subset: false

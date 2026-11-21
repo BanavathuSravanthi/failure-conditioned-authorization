@@ -1,0 +1,14 @@
+controller:
+  id: scenario_011
+  app: slack
+  seed: 2005
+  failed_tool:
+    name: slack.post_message
+    scope: MEDIUM
+  candidate_tool: null
+  candidate_order: null
+  high_tool:
+    name: slack.delete_channel
+    scope: HIGH
+  feasible: false
+  predicted_B: 0

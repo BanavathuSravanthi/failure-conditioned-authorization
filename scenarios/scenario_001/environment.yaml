@@ -1,0 +1,8 @@
+environment:
+  tools:
+    gmail.send_draft:
+      success_attempt: 2
+    gmail.create_draft:
+      success_attempt: 1
+    gmail.delete_thread:
+      success_attempt: 1

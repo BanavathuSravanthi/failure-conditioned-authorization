@@ -1,0 +1,6 @@
+ground_truth:
+  class: A
+  feasible: true
+  candidate_attempts_needed: 2
+  completing_tools: [drive.update_file, drive.create_file]
+  needs_high_to_complete: false
