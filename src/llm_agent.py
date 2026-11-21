@@ -66,6 +66,10 @@ class LLMAgent:
         self.stopped: bool = False
         self.last_action: Optional[Dict[str, str]] = None
         self.total_latency_ms: float = 0.0
+        self.current_tool_call_id: str = "call_0"
+        self.total_prompt_tokens: int = 0
+        self.total_completion_tokens: int = 0
+        self.total_tokens: int = 0
 
     def select_action(self) -> Optional[Dict[str, str]]:
         """Ask LLM to choose the next tool action, or stop if complete."""
@@ -75,12 +79,16 @@ class LLMAgent:
         # Query LLM provider
         response: LLMResponse = self.provider.generate_tool_call(self.messages, self.tools)
         self.total_latency_ms += response.latency_ms
+        self.total_prompt_tokens += response.prompt_tokens
+        self.total_completion_tokens += response.completion_tokens
+        self.total_tokens += response.total_tokens
 
         if response.is_finish or not response.tool_name:
             self.stopped = True
             return None
 
         tool_name = response.tool_name
+        self.current_tool_call_id = response.tool_call_id or f"call_{len(self.messages)}"
 
         # Handle hallucinated tool names gracefully by providing feedback to LLM
         if tool_name not in self.tool_by_name:
@@ -117,6 +125,7 @@ class LLMAgent:
         # Record assistant tool call in message history
         self.messages.append({
             "role": "assistant",
+            "tool_call_id": self.current_tool_call_id,
             "tool_call": {
                 "name": tool_name,
                 "arguments": response.arguments
@@ -147,11 +156,13 @@ class LLMAgent:
             return
 
         tool_name = self.last_action["name"]
+        tc_id = self.current_tool_call_id
 
         if episode_complete:
             self.stopped = True
             self.messages.append({
                 "role": "tool_response",
+                "tool_call_id": tc_id,
                 "tool_response": {
                     "name": tool_name,
                     "result": {
@@ -168,6 +179,7 @@ class LLMAgent:
             assert_no_information_leak(denial_msg)
             self.messages.append({
                 "role": "tool_response",
+                "tool_call_id": tc_id,
                 "tool_response": {
                     "name": tool_name,
                     "result": {
@@ -184,6 +196,7 @@ class LLMAgent:
             assert_no_information_leak(succ_msg)
             self.messages.append({
                 "role": "tool_response",
+                "tool_call_id": tc_id,
                 "tool_response": {
                     "name": tool_name,
                     "result": {
@@ -200,6 +213,7 @@ class LLMAgent:
             assert_no_information_leak(fail_msg)
             self.messages.append({
                 "role": "tool_response",
+                "tool_call_id": tc_id,
                 "tool_response": {
                     "name": tool_name,
                     "result": {
@@ -209,3 +223,22 @@ class LLMAgent:
                 }
             })
             return
+
+    def get_estimated_cost_usd(self) -> float:
+        """Estimate API cost based on recorded token counts and provider model."""
+        model_name = getattr(self.provider, "model", "").lower()
+        if "gpt-4o-mini" in model_name:
+            # $0.15 / 1M prompt, $0.60 / 1M completion
+            return (self.total_prompt_tokens * 0.15 + self.total_completion_tokens * 0.60) / 1_000_000.0
+        elif "gpt-4o" in model_name:
+            # $2.50 / 1M prompt, $10.00 / 1M completion
+            return (self.total_prompt_tokens * 2.50 + self.total_completion_tokens * 10.00) / 1_000_000.0
+        elif "gemini-1.5-flash" in model_name:
+            # $0.075 / 1M prompt, $0.30 / 1M completion
+            return (self.total_prompt_tokens * 0.075 + self.total_completion_tokens * 0.30) / 1_000_000.0
+        elif "gemini-1.5-pro" in model_name:
+            # $1.25 / 1M prompt, $5.00 / 1M completion
+            return (self.total_prompt_tokens * 1.25 + self.total_completion_tokens * 5.00) / 1_000_000.0
+        else:
+            # Conservative baseline: $0.15 / 1M prompt, $0.60 / 1M completion
+            return (self.total_prompt_tokens * 0.15 + self.total_completion_tokens * 0.60) / 1_000_000.0

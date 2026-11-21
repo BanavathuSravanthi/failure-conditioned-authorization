@@ -31,6 +31,10 @@ class LLMResponse:
     is_finish: bool = False
     raw_text: Optional[str] = None
     latency_ms: float = 0.0
+    tool_call_id: Optional[str] = None
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
 
 
 class LLMProvider(ABC):
@@ -185,7 +189,7 @@ class OpenAIProvider(LLMProvider):
 
     def __init__(
         self,
-        model: str = "gpt-4o",
+        model: str = "gpt-4o-mini",
         api_key: Optional[str] = None,
         base_url: str = "https://api.openai.com/v1/chat/completions",
         temperature: float = 0.0,
@@ -193,6 +197,30 @@ class OpenAIProvider(LLMProvider):
     ):
         super().__init__(model=model, temperature=temperature, max_retries=max_retries)
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+
+        # Fallback 1: check Windows user registry
+        if not self.api_key:
+            try:
+                import winreg
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as env_k:
+                    val, _ = winreg.QueryValueEx(env_k, "OPENAI_API_KEY")
+                    if val and isinstance(val, str) and val.strip():
+                        self.api_key = val.strip()
+            except Exception:
+                pass
+
+        # Fallback 2: check local gitignored .env file
+        if not self.api_key and os.path.exists(".env"):
+            try:
+                with open(".env", "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("OPENAI_API_KEY="):
+                            self.api_key = line.split("=", 1)[1].strip().strip('"').strip("'")
+                            break
+            except Exception:
+                pass
+
         if not self.api_key:
             raise ValueError("OpenAIProvider requires OPENAI_API_KEY environment variable or explicit api_key argument")
         self.endpoint = base_url
@@ -211,7 +239,7 @@ class OpenAIProvider(LLMProvider):
             if role == "tool_response":
                 formatted_messages.append({
                     "role": "tool",
-                    "tool_call_id": m.get("tool_call_id", "call_default"),
+                    "tool_call_id": m.get("tool_call_id") or "call_0",
                     "content": json.dumps(m.get("tool_response", {}))
                 })
             elif role == "assistant" and "tool_call" in m:
@@ -219,7 +247,7 @@ class OpenAIProvider(LLMProvider):
                     "role": "assistant",
                     "content": m.get("content"),
                     "tool_calls": [{
-                        "id": m.get("tool_call_id", "call_default"),
+                        "id": m.get("tool_call_id") or "call_0",
                         "type": "function",
                         "function": {
                             "name": m["tool_call"]["name"],
@@ -258,14 +286,28 @@ class OpenAIProvider(LLMProvider):
                     resp_data = json.loads(resp.read().decode("utf-8"))
                     latency = (time.perf_counter() - start_t) * 1000.0
 
+                    usage = resp_data.get("usage", {})
+                    p_tokens = usage.get("prompt_tokens", 0)
+                    c_tokens = usage.get("completion_tokens", 0)
+                    t_tokens = usage.get("total_tokens", 0)
+
                     choices = resp_data.get("choices", [])
                     if not choices:
-                        return LLMResponse(tool_name=None, is_finish=True, latency_ms=latency)
+                        return LLMResponse(
+                            tool_name=None,
+                            is_finish=True,
+                            latency_ms=latency,
+                            prompt_tokens=p_tokens,
+                            completion_tokens=c_tokens,
+                            total_tokens=t_tokens,
+                        )
 
                     msg = choices[0].get("message", {})
                     tool_calls = msg.get("tool_calls", [])
                     if tool_calls:
-                        fn = tool_calls[0].get("function", {})
+                        tc = tool_calls[0]
+                        tc_id = tc.get("id")
+                        fn = tc.get("function", {})
                         fn_name = fn.get("name")
                         try:
                             fn_args = json.loads(fn.get("arguments", "{}"))
@@ -275,11 +317,23 @@ class OpenAIProvider(LLMProvider):
                             tool_name=fn_name,
                             arguments=fn_args,
                             is_finish=False,
-                            latency_ms=latency
+                            latency_ms=latency,
+                            tool_call_id=tc_id,
+                            prompt_tokens=p_tokens,
+                            completion_tokens=c_tokens,
+                            total_tokens=t_tokens,
                         )
 
                     content = msg.get("content", "")
-                    return LLMResponse(tool_name=None, is_finish=True, raw_text=content, latency_ms=latency)
+                    return LLMResponse(
+                        tool_name=None,
+                        is_finish=True,
+                        raw_text=content,
+                        latency_ms=latency,
+                        prompt_tokens=p_tokens,
+                        completion_tokens=c_tokens,
+                        total_tokens=t_tokens,
+                    )
 
             except urllib.error.HTTPError as e:
                 last_err = e
