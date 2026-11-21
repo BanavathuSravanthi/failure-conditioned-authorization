@@ -255,7 +255,7 @@ class GeminiProvider(LLMProvider):
                 last_err = e
                 # 429 Rate Limit or 5xx Server Error -> retry
                 if e.code in (429, 500, 502, 503, 504) and attempt < self.max_retries - 1:
-                    sleep_time = (2 ** attempt) * 1.5
+                    sleep_time = max(5.0, (2 ** attempt) * 3.0) if e.code == 429 else (2 ** attempt) * 1.5
                     time.sleep(sleep_time)
                     continue
                 raise RuntimeError(f"Gemini API HTTP Error {e.code}: {e.read().decode('utf-8')}") from e
@@ -485,25 +485,81 @@ class MockLLMProvider(LLMProvider):
         return LLMResponse(tool_name=None, is_finish=True, latency_ms=5.0)
 
 
+def resolve_api_key(provider_name: str) -> Optional[str]:
+    """Safely check and resolve API key from environment, Windows registry, or .env."""
+    key_names = ("GEMINI_API_KEY", "GOOGLE_API_KEY") if provider_name == "gemini" else ("OPENAI_API_KEY",)
+
+    # 1. Check process environment
+    for k in key_names:
+        val = os.environ.get(k)
+        if val and val.strip():
+            return val.strip()
+
+    # 2. Check Windows User registry
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as env_k:
+            for k in key_names:
+                try:
+                    val, _ = winreg.QueryValueEx(env_k, k)
+                    if val and isinstance(val, str) and val.strip():
+                        os.environ[k] = val.strip()
+                        return val.strip()
+                except FileNotFoundError:
+                    continue
+    except Exception:
+        pass
+
+    # 3. Check local gitignored .env file
+    if os.path.exists(".env"):
+        try:
+            with open(".env", "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    for k in key_names:
+                        if line.startswith(f"{k}="):
+                            extracted = line.split("=", 1)[1].strip().strip('"').strip("'")
+                            if extracted:
+                                os.environ[k] = extracted
+                                return extracted
+        except Exception:
+            pass
+
+    return None
+
+
 def create_llm_provider(
     provider_name: Optional[str] = None,
     model: Optional[str] = None,
     temperature: float = 0.0,
 ) -> LLMProvider:
     """Factory to instantiate the appropriate LLM provider."""
-    # 1. Explicit provider
-    if provider_name == "gemini":
-        return GeminiProvider(model=model or "gemini-1.5-pro", temperature=temperature)
-    if provider_name == "openai":
-        return OpenAIProvider(model=model or "gpt-4o", temperature=temperature)
+    # 1. Explicit mock provider
     if provider_name == "mock":
         return MockLLMProvider(model=model or "mock-model-v1", temperature=temperature)
 
-    # 2. Auto-detect from environment
-    if os.environ.get("GEMINI_API_KEY"):
-        return GeminiProvider(model=model or "gemini-1.5-pro", temperature=temperature)
-    if os.environ.get("OPENAI_API_KEY"):
-        return OpenAIProvider(model=model or "gpt-4o", temperature=temperature)
+    gemini_key = resolve_api_key("gemini")
+    openai_key = resolve_api_key("openai")
+
+    # 2. Gemini provider (explicit or auto-detected)
+    if provider_name == "gemini" or (provider_name is None and gemini_key):
+        if not gemini_key:
+            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY required for GeminiProvider.")
+        return GeminiProvider(
+            model=model or "gemini-3.1-flash-lite",
+            api_key=gemini_key,
+            temperature=temperature,
+        )
+
+    # 3. OpenAI provider (explicit or auto-detected)
+    if provider_name == "openai" or (provider_name is None and openai_key):
+        if not openai_key:
+            raise ValueError("OPENAI_API_KEY required for OpenAIProvider.")
+        return OpenAIProvider(
+            model=model or "gpt-4o-mini",
+            api_key=openai_key,
+            temperature=temperature,
+        )
 
     raise ValueError(
         "No LLM provider credentials configured. Please set GEMINI_API_KEY or OPENAI_API_KEY, "
