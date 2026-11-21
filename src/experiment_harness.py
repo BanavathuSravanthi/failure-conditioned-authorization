@@ -65,6 +65,11 @@ class ExperimentHarness:
         run_id: str = "run_001",
         max_steps: int = 12,
         fail_threshold: int = 3,
+        agent: Optional[Any] = None,
+        agent_type: str = "scripted",
+        model: Optional[str] = None,
+        prompt_version: Optional[str] = None,
+        temperature: Optional[float] = None,
     ):
         self.scenario_dir = Path(scenario_dir)
         self.canonical_id = canonical_id
@@ -76,6 +81,10 @@ class ExperimentHarness:
         self.run_id = run_id
         self.max_steps = max_steps
         self.fail_threshold = fail_threshold
+        self.agent_type = agent_type
+        self.model = model
+        self.prompt_version = prompt_version
+        self.temperature = temperature
 
         # 1. Independent component loading preserving strict file boundaries (Spec Sec 1)
         self.scenario_data = load_scenario_for_agent(self.scenario_dir)
@@ -88,7 +97,10 @@ class ExperimentHarness:
         cost_table = APP_COST_TABLES.get(app_name, {})
 
         # 2. Component instantiation
-        self.agent = ScriptedAgent(self.scenario_data, fail_threshold=self.fail_threshold)
+        if agent is not None:
+            self.agent = agent
+        else:
+            self.agent = ScriptedAgent(self.scenario_data, fail_threshold=self.fail_threshold)
         self.controller = Controller(
             scenario_id=self.controller_data["id"],
             condition=self.condition,
@@ -118,12 +130,12 @@ class ExperimentHarness:
             "run_id": self.run_id,
             "scenario_id": self.canonical_id,
             "condition": self.condition,
-            "agent_type": "scripted",
-            "model": None,
-            "prompt_version": None,
-            "temperature": None,
+            "agent_type": self.agent_type,
+            "model": self.model if self.agent_type == "llm" else None,
+            "prompt_version": self.prompt_version if self.agent_type == "llm" else None,
+            "temperature": self.temperature if self.agent_type == "llm" else None,
             "seed": self.seed,
-            "scripted_fail_threshold": self.fail_threshold,
+            "scripted_fail_threshold": self.fail_threshold if self.agent_type == "scripted" else None,
             "step": step,
             "event": event_type,
             "recovery_call": False,

@@ -81,6 +81,15 @@ def validate_event_dict(event: Dict[str, Any], line_num: int = 1) -> List[str]:
     if event.get("agent_type") == "scripted":
         if event.get("scripted_fail_threshold") != 3:
             errors.append(f"Line {line_num}: 'scripted_fail_threshold' must be 3 for scripted agent, got {event.get('scripted_fail_threshold')}")
+    elif event.get("agent_type") == "llm":
+        if not event.get("model") or not isinstance(event.get("model"), str):
+            errors.append(f"Line {line_num}: LLM event must specify non-empty string 'model'")
+        if not event.get("prompt_version") or not isinstance(event.get("prompt_version"), str):
+            errors.append(f"Line {line_num}: LLM event must specify non-empty string 'prompt_version'")
+        if event.get("temperature") is None or not isinstance(event.get("temperature"), (int, float)):
+            errors.append(f"Line {line_num}: LLM event must specify numeric 'temperature'")
+        if event.get("scripted_fail_threshold") is not None:
+            errors.append(f"Line {line_num}: 'scripted_fail_threshold' must be null/None for LLM agent")
 
     # 3. Check event-specific contracts
     if event_type == "tool_call":
