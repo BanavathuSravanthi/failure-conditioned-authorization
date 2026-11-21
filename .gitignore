@@ -29,23 +29,45 @@ venv/
 .venv/
 env/
 ENV/
+env.bak/
+venv.bak/
 
 # Testing caches & coverage
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
+.ruff_cache/
 
-# Environment files & secrets
+# Environment files, secrets & credentials
 .env
 *.env
+*.env.*
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.token
+*.secret
+credentials.json
+client_secret*.json
+
+# Logs, scratch scripts & temporary files
+*.log
+scratch/
+tmp/
+*.tmp
+*.bak
+*.swp
+*.swo
 
 # Operating System & IDE files
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
-*.swp
-*.swo
+*.local
 
 # Ensure results folder is explicitly NOT ignored per spec rules
 !results/
