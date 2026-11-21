@@ -246,3 +246,75 @@ def test_approver_loader_parses_policy_content(tmp_path):
     auth_policy = policy["authorization_policy"]
     assert auth_policy.get("approvable_high_tools") == ["drive.delete_permanently"]
     assert auth_policy.get("maximum_approvable_scope") == "HIGH"
+
+
+# ============================================================================
+# Additional Focused Unit Tests: Fail-Closed Defaults & Parser Coverage
+# ============================================================================
+@pytest.mark.parametrize("invalid_policy", [
+    {"approvable_high_tools": ["gmail.delete_thread"]},                            # missing maximum_approvable_scope
+    {"approvable_high_tools": ["gmail.delete_thread"], "maximum_approvable_scope": "INVALID"},  # unknown scope
+    {"approvable_high_tools": ["gmail.delete_thread"], "maximum_approvable_scope": None},       # None scope
+    {"approvable_high_tools": ["gmail.delete_thread"], "maximum_approvable_scope": ["HIGH"]},   # unhashable list scope
+    {"approvable_high_tools": ["gmail.delete_thread"], "maximum_approvable_scope": {"s": "HIGH"}}, # unhashable dict scope
+    {"approvable_high_tools": ["gmail.delete_thread"], "maximum_approvable_scope": 123},        # integer scope
+    {"maximum_approvable_scope": "HIGH"},                                           # missing approvable_high_tools
+    {"approvable_high_tools": "not_a_list", "maximum_approvable_scope": "HIGH"},    # invalid string type for tools
+    {"approvable_high_tools": None, "maximum_approvable_scope": "HIGH"},            # None tools
+    {"approvable_high_tools": 123, "maximum_approvable_scope": "HIGH"},             # int tools
+    {"approvable_high_tools": {"tool": "gmail.delete_thread"}, "maximum_approvable_scope": "HIGH"}, # dict tools
+    {},                                                                             # empty mapping
+    None,                                                                           # None policy
+])
+def test_approver_fails_closed_on_missing_or_invalid_policy_fields(invalid_policy):
+    """Spec Section 6 and Section 10 Test 14:
+    Verifies that Approver strictly fails closed (denies with policy_deny)
+    when policy fields are missing, invalid, or malformed. Never assumes permissive defaults.
+    """
+    approver = Approver(invalid_policy)
+    res = approver.evaluate("Task text", "gmail.delete_thread", "HIGH")
+    assert res.decision == "deny"
+    assert res.reason == "policy_deny"
+
+
+def test_approver_yaml_parser_handles_all_permitted_schema_variants(tmp_path):
+    """Spec Section 6 and Section 8:
+    Verifies that the YAML parser accurately parses every schema structure permitted
+    in approver.yaml: inline lists, block lists, empty lists, quoted strings, and comments.
+    """
+    # 1. Inline list with comments and quotes
+    p1 = tmp_path / "p1.yaml"
+    p1.write_text(
+        "# approver policy comment\n"
+        "authorization_policy:\n"
+        "  approvable_high_tools: [\"gmail.delete_thread\"]  # inline comment\n"
+        "  maximum_approvable_scope: 'HIGH'\n",
+        encoding="utf-8"
+    )
+    pol1 = load_approver_policy(str(p1))
+    assert pol1["authorization_policy"]["approvable_high_tools"] == ["gmail.delete_thread"]
+    assert pol1["authorization_policy"]["maximum_approvable_scope"] == "HIGH"
+
+    # 2. Empty inline list
+    p2 = tmp_path / "p2.yaml"
+    p2.write_text(
+        "authorization_policy:\n"
+        "  approvable_high_tools: []\n"
+        "  maximum_approvable_scope: HIGH\n",
+        encoding="utf-8"
+    )
+    pol2 = load_approver_policy(str(p2))
+    assert pol2["authorization_policy"]["approvable_high_tools"] == []
+    assert pol2["authorization_policy"]["maximum_approvable_scope"] == "HIGH"
+
+    # 3. Empty block list (key with empty value followed by next key)
+    p3 = tmp_path / "p3.yaml"
+    p3.write_text(
+        "authorization_policy:\n"
+        "  approvable_high_tools:\n"
+        "  maximum_approvable_scope: HIGH\n",
+        encoding="utf-8"
+    )
+    pol3 = load_approver_policy(str(p3))
+    assert pol3["authorization_policy"]["approvable_high_tools"] == []
+    assert pol3["authorization_policy"]["maximum_approvable_scope"] == "HIGH"
