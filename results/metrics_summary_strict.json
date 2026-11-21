@@ -1,0 +1,209 @@
+{
+  "overall": {
+    "cohort": "ALL_CONDITIONS",
+    "total_episodes": 126,
+    "n_class_a": 84,
+    "n_class_b": 42,
+    "PDR": 0.9206,
+    "SCR": 0.9206,
+    "RSR": 0.881,
+    "GUER": 0.0,
+    "AUER": 0.0,
+    "UGR": 0.0476,
+    "LES": 1.0,
+    "total_recovery_calls": 74,
+    "mean_recovery_calls": 0.59,
+    "executed_calls_after_fail": 288,
+    "failed_calls_after_fail": 150,
+    "blocked_calls": 58,
+    "terminal_distribution": {
+      "COMPLETED_RECOVERED": 74,
+      "COMPLETED_ESCALATED": 42,
+      "ESCALATION_DENIED": 6,
+      "FAILED": 4
+    }
+  },
+  "by_condition": {
+    "C1": {
+      "cohort": "C1",
+      "total_episodes": 18,
+      "n_class_a": 12,
+      "n_class_b": 6,
+      "PDR": 1.0,
+      "SCR": 1.0,
+      "RSR": 1.0,
+      "GUER": 0.0,
+      "AUER": 0.0,
+      "UGR": 0.0,
+      "LES": 1.0,
+      "total_recovery_calls": 0,
+      "mean_recovery_calls": 0.0,
+      "executed_calls_after_fail": 57,
+      "failed_calls_after_fail": 33,
+      "blocked_calls": 0,
+      "terminal_distribution": {
+        "COMPLETED_RECOVERED": 12,
+        "COMPLETED_ESCALATED": 6
+      }
+    },
+    "C4": {
+      "cohort": "C4",
+      "total_episodes": 18,
+      "n_class_a": 12,
+      "n_class_b": 6,
+      "PDR": 1.0,
+      "SCR": 1.0,
+      "RSR": 1.0,
+      "GUER": 0.0,
+      "AUER": 0.0,
+      "UGR": 0.0,
+      "LES": 1.0,
+      "total_recovery_calls": 0,
+      "mean_recovery_calls": 0.0,
+      "executed_calls_after_fail": 39,
+      "failed_calls_after_fail": 18,
+      "blocked_calls": 0,
+      "terminal_distribution": {
+        "COMPLETED_RECOVERED": 12,
+        "COMPLETED_ESCALATED": 6
+      }
+    },
+    "C5": {
+      "cohort": "C5",
+      "total_episodes": 18,
+      "n_class_a": 12,
+      "n_class_b": 6,
+      "PDR": 1.0,
+      "SCR": 1.0,
+      "RSR": 1.0,
+      "GUER": 0.0,
+      "AUER": 0.0,
+      "UGR": 0.0,
+      "LES": 1.0,
+      "total_recovery_calls": 0,
+      "mean_recovery_calls": 0.0,
+      "executed_calls_after_fail": 57,
+      "failed_calls_after_fail": 33,
+      "blocked_calls": 0,
+      "terminal_distribution": {
+        "COMPLETED_RECOVERED": 12,
+        "COMPLETED_ESCALATED": 6
+      }
+    },
+    "C6": {
+      "cohort": "C6",
+      "total_episodes": 18,
+      "n_class_a": 12,
+      "n_class_b": 6,
+      "PDR": 1.0,
+      "SCR": 1.0,
+      "RSR": 1.0,
+      "GUER": 0.0,
+      "AUER": 0.0,
+      "UGR": 0.0,
+      "LES": 1.0,
+      "total_recovery_calls": 0,
+      "mean_recovery_calls": 0.0,
+      "executed_calls_after_fail": 39,
+      "failed_calls_after_fail": 18,
+      "blocked_calls": 0,
+      "terminal_distribution": {
+        "COMPLETED_RECOVERED": 12,
+        "COMPLETED_ESCALATED": 6
+      }
+    },
+    "C7": {
+      "cohort": "C7",
+      "total_episodes": 18,
+      "n_class_a": 12,
+      "n_class_b": 6,
+      "PDR": 0.5,
+      "SCR": 0.5,
+      "RSR": 0.25,
+      "GUER": 0.0,
+      "AUER": 0.0,
+      "UGR": 0.3333,
+      "LES": 1.0,
+      "total_recovery_calls": 33,
+      "mean_recovery_calls": 1.83,
+      "executed_calls_after_fail": 43,
+      "failed_calls_after_fail": 30,
+      "blocked_calls": 15,
+      "terminal_distribution": {
+        "COMPLETED_RECOVERED": 3,
+        "ESCALATION_DENIED": 5,
+        "FAILED": 4,
+        "COMPLETED_ESCALATED": 6
+      }
+    },
+    "C8": {
+      "cohort": "C8",
+      "total_episodes": 18,
+      "n_class_a": 12,
+      "n_class_b": 6,
+      "PDR": 0.9444,
+      "SCR": 0.9444,
+      "RSR": 0.9167,
+      "GUER": 0.0,
+      "AUER": 0.0,
+      "UGR": 0.0,
+      "LES": 1.0,
+      "total_recovery_calls": 14,
+      "mean_recovery_calls": 0.78,
+      "executed_calls_after_fail": 20,
+      "failed_calls_after_fail": 3,
+      "blocked_calls": 25,
+      "terminal_distribution": {
+        "COMPLETED_RECOVERED": 11,
+        "ESCALATION_DENIED": 1,
+        "COMPLETED_ESCALATED": 6
+      }
+    },
+    "C9": {
+      "cohort": "C9",
+      "total_episodes": 18,
+      "n_class_a": 12,
+      "n_class_b": 6,
+      "PDR": 1.0,
+      "SCR": 1.0,
+      "RSR": 1.0,
+      "GUER": 0.0,
+      "AUER": 0.0,
+      "UGR": 0.0,
+      "LES": 1.0,
+      "total_recovery_calls": 27,
+      "mean_recovery_calls": 1.5,
+      "executed_calls_after_fail": 33,
+      "failed_calls_after_fail": 15,
+      "blocked_calls": 18,
+      "terminal_distribution": {
+        "COMPLETED_RECOVERED": 12,
+        "COMPLETED_ESCALATED": 6
+      }
+    }
+  },
+  "thesis_subset": {
+    "cohort": "THESIS_10_SUBSET",
+    "total_episodes": 70,
+    "n_class_a": 56,
+    "n_class_b": 14,
+    "PDR": 0.9286,
+    "SCR": 0.9286,
+    "RSR": 0.9107,
+    "GUER": 0.0,
+    "AUER": 0.0,
+    "UGR": 0.0357,
+    "LES": 1.0,
+    "total_recovery_calls": 37,
+    "mean_recovery_calls": 0.53,
+    "executed_calls_after_fail": 131,
+    "failed_calls_after_fail": 62,
+    "blocked_calls": 29,
+    "terminal_distribution": {
+      "COMPLETED_RECOVERED": 51,
+      "COMPLETED_ESCALATED": 14,
+      "ESCALATION_DENIED": 3,
+      "FAILED": 2
+    }
+  }
+}

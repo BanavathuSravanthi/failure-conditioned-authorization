@@ -110,6 +110,23 @@ class Controller:
         # 1. Before first failure: no freeze exists yet (Spec Sec 3.3, Test 28)
         if not self.first_failure_occurred:
             if scope == "HIGH":
+                if self.condition == "C2":
+                    # Static least privilege: HIGH always blocked
+                    blocked_event = {
+                        "event": "blocked_attempt",
+                        "tool": tool_name,
+                        "scope": "HIGH",
+                        "high_request": True,
+                        "high_granted": False,
+                        "recovery_call": False
+                    }
+                    return ControllerEvaluation(
+                        allowed=False,
+                        is_blocked=True,
+                        requires_approval=False,
+                        denial_message=GENERIC_DENIAL_MESSAGE,
+                        events_to_log=[blocked_event]
+                    )
                 return ControllerEvaluation(
                     allowed=False,
                     is_blocked=False,
@@ -181,13 +198,39 @@ class Controller:
                     events_to_log=[blocked_event]
                 )
 
-        # 3. Post-exhaustion (or conditions with no window, e.g. B=0, K=0)
+        # 3. Post-exhaustion / Conditions without budget (C1, C4, C5, C6)
         if scope == "HIGH":
-            # HIGH request reaches the approver
+            if self.condition == "C2":
+                blocked_event = {
+                    "event": "blocked_attempt",
+                    "tool": tool_name,
+                    "scope": "HIGH",
+                    "high_request": True,
+                    "high_granted": False,
+                    "recovery_call": False
+                }
+                return ControllerEvaluation(
+                    allowed=False,
+                    is_blocked=True,
+                    requires_approval=False,
+                    denial_message=GENERIC_DENIAL_MESSAGE,
+                    events_to_log=[blocked_event]
+                )
+            # HIGH request reaches the approver (or gate)
             return ControllerEvaluation(
                 allowed=False,
                 is_blocked=False,
                 requires_approval=True,
+                denial_message=None,
+                events_to_log=[]
+            )
+
+        # For budgetless / retry conditions or K=0, non-HIGH calls are never blocked
+        if self.condition in ("C1", "C4", "C5", "C6") or (self.condition in ("C7", "C9") and self.k_value == 0):
+            return ControllerEvaluation(
+                allowed=True,
+                is_blocked=False,
+                requires_approval=False,
                 denial_message=None,
                 events_to_log=[]
             )
