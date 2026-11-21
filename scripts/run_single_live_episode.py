@@ -87,7 +87,7 @@ def run_single_episode(
 
     # Default model selection per provider
     if not model:
-        model = "gemini-1.5-flash" if provider_name == "gemini" else "gpt-4o-mini"
+        model = "gemini-3.1-flash-lite" if provider_name == "gemini" else "gpt-4o-mini"
 
     # 1. Check for API key safely without exposing its value
     api_key = resolve_api_key(provider_name)

@@ -123,14 +123,17 @@ class LLMAgent:
         }
 
         # Record assistant tool call in message history
-        self.messages.append({
+        msg_entry = {
             "role": "assistant",
             "tool_call_id": self.current_tool_call_id,
             "tool_call": {
                 "name": tool_name,
                 "arguments": response.arguments
             }
-        })
+        }
+        if getattr(response, "thought_signature", None):
+            msg_entry["thought_signature"] = response.thought_signature
+        self.messages.append(msg_entry)
 
         return {
             "name": tool_name,
@@ -233,7 +236,7 @@ class LLMAgent:
         elif "gpt-4o" in model_name:
             # $2.50 / 1M prompt, $10.00 / 1M completion
             return (self.total_prompt_tokens * 2.50 + self.total_completion_tokens * 10.00) / 1_000_000.0
-        elif "gemini-1.5-flash" in model_name:
+        elif "flash" in model_name:
             # $0.075 / 1M prompt, $0.30 / 1M completion
             return (self.total_prompt_tokens * 0.075 + self.total_completion_tokens * 0.30) / 1_000_000.0
         elif "gemini-1.5-pro" in model_name:

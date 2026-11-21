@@ -35,6 +35,7 @@ class LLMResponse:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
+    thought_signature: Optional[str] = None
 
 
 class LLMProvider(ABC):
@@ -60,7 +61,7 @@ class GeminiProvider(LLMProvider):
 
     def __init__(
         self,
-        model: str = "gemini-1.5-flash",
+        model: str = "gemini-3.1-flash-lite",
         api_key: Optional[str] = None,
         temperature: float = 0.0,
         max_retries: int = 5,
@@ -126,17 +127,35 @@ class GeminiProvider(LLMProvider):
             if "tool_call" in m:
                 tc = m["tool_call"]
                 g_name = tc["name"].replace(".", "_")
-                parts.append({"functionCall": {"name": g_name, "args": tc.get("arguments", {})}})
+                fc_dict: Dict[str, Any] = {"name": g_name, "args": tc.get("arguments", {})}
+                if "tool_call_id" in m and m["tool_call_id"]:
+                    fc_dict["id"] = m["tool_call_id"]
+                part_entry: Dict[str, Any] = {"functionCall": fc_dict}
+                if "thought_signature" in m and m["thought_signature"]:
+                    part_entry["thoughtSignature"] = m["thought_signature"]
+                parts.append(part_entry)
             if "tool_response" in m:
                 tr = m["tool_response"]
                 g_name = tr["name"].replace(".", "_")
-                parts.append({
-                    "functionResponse": {
-                        "name": g_name,
-                        "response": {"result": tr.get("result", {})}
-                    }
-                })
-            contents.append({"role": gemini_role, "parts": parts})
+                fr_dict: Dict[str, Any] = {
+                    "name": g_name,
+                    "response": {"result": tr.get("result", {})}
+                }
+                if "tool_call_id" in m and m["tool_call_id"]:
+                    fr_dict["id"] = m["tool_call_id"]
+                parts.append({"functionResponse": fr_dict})
+            if parts:
+                contents.append({"role": gemini_role, "parts": parts})
+
+        # Ensure alternating user/model turns for Gemini multi-turn format
+        merged_contents = []
+        for c in contents:
+            if not c["parts"]:
+                continue
+            if merged_contents and merged_contents[-1]["role"] == c["role"]:
+                merged_contents[-1]["parts"].extend(c["parts"])
+            else:
+                merged_contents.append(c)
 
         system_instruction = None
         for m in messages:
@@ -145,7 +164,7 @@ class GeminiProvider(LLMProvider):
                 break
 
         payload: Dict[str, Any] = {
-            "contents": contents,
+            "contents": merged_contents,
             "tools": gemini_tools,
             "generationConfig": {
                 "temperature": self.temperature,
@@ -197,6 +216,8 @@ class GeminiProvider(LLMProvider):
                             raw_name = fc.get("name", "")
                             orig_name = name_map.get(raw_name, raw_name.replace("_", "."))
                             args = fc.get("args", {})
+                            sig = p.get("thoughtSignature")
+                            tc_id = fc.get("id")
                             return LLMResponse(
                                 tool_name=orig_name,
                                 arguments=args,
@@ -205,6 +226,8 @@ class GeminiProvider(LLMProvider):
                                 prompt_tokens=p_tokens,
                                 completion_tokens=c_tokens,
                                 total_tokens=t_tokens,
+                                tool_call_id=tc_id,
+                                thought_signature=sig,
                             )
                         if "text" in p:
                             raw_txt = p["text"]
