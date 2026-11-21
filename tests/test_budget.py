@@ -391,3 +391,54 @@ def test_budget_clipping_when_dc_less_equal_zero(failed_scope, candidate_scope):
     )
     assert budget == 1
     assert uninformative is False
+
+
+# ============================================================================
+# Additional Focused Unit Tests for Spec Section 4 Boundary Requirements
+# ============================================================================
+def test_crange_zero_gives_b1_and_flags_uninformative():
+    """Spec Section 4 (lines 256-258):
+    If Crange = 0: B = 1 and flag the app as uninformative.
+    Also verifies calculate_budget_from_cost_gap directly for crange == 0,
+    and verifies that negative crange (invalid cost hierarchy) raises ValueError.
+    """
+    cost_table_zero_range = {"LOW": 5, "MEDIUM": 5, "HIGH": 5}
+    budget, uninformative = calculate_igar_budget(
+        failed_scope="MEDIUM",
+        candidate_scope="LOW",
+        cost_table=cost_table_zero_range,
+        feasible=True,
+        k_max=2
+    )
+    assert budget == 1
+    assert uninformative is True
+
+    # Direct calculation with exact crange == 0 gives B = 1
+    assert calculate_budget_from_cost_gap(dc=2, crange=0, k_max=2, feasible=True) == 1
+
+    # Negative crange violates cost hierarchy contract (cost(HIGH) >= cost(LOW)) -> ValueError
+    with pytest.raises(ValueError):
+        calculate_budget_from_cost_gap(dc=2, crange=-1, k_max=2, feasible=True)
+
+
+def test_compute_integer_rhu_direct_spec_formula():
+    """Spec Section 4 (lines 254-258):
+    Directly tests integer-only round-half-up formula:
+    RHU(numerator / denominator) = floor((2 * numerator + denominator) // (2 * denominator))
+    Verifies ties round up and floor division floors negatives.
+    """
+    # 0.25 rounds to 0
+    assert compute_integer_rhu(1, 4) == 0
+    # 0.5 rounds half-up to 1
+    assert compute_integer_rhu(2, 4) == 1
+    # 0.75 rounds to 1
+    assert compute_integer_rhu(3, 4) == 1
+    # -0.25 rounds to 0
+    assert compute_integer_rhu(-1, 4) == 0
+    # -0.5 rounds half-up to 0 (floor((-4+4)/8) = 0)
+    assert compute_integer_rhu(-2, 4) == 0
+    # -0.75 rounds to -1 (floor((-6+4)/8) = floor(-2/8) = -1)
+    assert compute_integer_rhu(-3, 4) == -1
+    # Invalid non-positive denominator raises ValueError
+    with pytest.raises(ValueError):
+        compute_integer_rhu(1, 0)
