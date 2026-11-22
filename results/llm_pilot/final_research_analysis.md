@@ -11,7 +11,7 @@
 
 ## 1. Executive Summary & Research Context
 
-The Failure-Conditioned Authorization (FCA) and Information-Guided Authorization Recovery (IGAR) framework addresses a central challenge in autonomous agent security: **after an operation below HIGH privilege fails, how can an authorization architecture prevent premature or unnecessary privilege escalation while preserving legitimate escalation when HIGH privilege is genuinely required?**
+The Failure-Conditioned Authorization (FCA) and ILP-Guided Authorization Recovery (IGAR) framework addresses a central challenge in autonomous agent security: **after an operation below HIGH privilege fails, how can an authorization architecture prevent premature or unnecessary privilege escalation while preserving legitimate escalation when HIGH privilege is genuinely required?**
 
 This document provides a scientifically rigorous analysis of empirical results from two non-overlapping evidence tiers:
 1. **Tier 1 (Scripted Benchmark)**: 252 deterministic episodes evaluating conditions C1, C4, C5, C6, C7, C8, and C9 under both `strict` and `open` post-exhaustion modes across 18 scenarios.

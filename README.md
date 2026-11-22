@@ -29,7 +29,7 @@ When a tool call fails below `HIGH` privilege:
 5. Once the recovery budget reaches 0, the window closes.
 
 ### ILP-Guided Authorization Recovery (IGAR)
-Rather than using a fixed recovery budget, IGAR sizes the recovery budget ($B$) dynamically based on the information-theoretic cost gap between the failed tool's scope and the lowest-cost alternative candidate tool:
+Rather than using a fixed recovery budget, IGAR sizes the recovery budget ($B$) dynamically based on the ILP-derived permission-cost gap between the failed tool's scope and the lowest-cost alternative candidate tool:
 - **Cost Range**: $C_{\text{range}} = \text{cost}(\text{HIGH}) - \text{cost}(\text{LOW})$
 - **Cost Gap**: $dC = \text{cost}(\text{failed\_scope}) - \text{cost}(\text{candidate\_scope})$
 - **Budget Allocation Formula** (Spec Section 4):
