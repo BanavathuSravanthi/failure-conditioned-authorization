@@ -26,7 +26,7 @@
    - Under `C7`, `C8`, and `C9`, the Controller hard-blocks premature HIGH requests during the recovery window, keeping $GUER = 0.0$ by mechanism enforcement while $AUER$ captures attempted escalation.
 2. **Recovery Efficiency ($H_7$, Recovery Calls)**:
    - Scripted agent follows a fixed retry threshold (3 failures).
-   - The LLM agent decides whether to retry based on error feedback. Information-guided recovery (`C8`) provides structured guidance towards feasible candidates, reducing wasted exploration compared to unguided trial-and-error (`C7`).
+   - The LLM agent decides whether to retry based on error feedback. ILP-Guided Authorization Recovery (`C8`) provides structured guidance towards feasible candidates, reducing wasted exploration compared to unguided trial-and-error (`C7`).
 3. **Statistical Significance Disclosure**:
    - As mandated by Spec Section 0.1, results from 3 trials per scenario-condition pair are pilot-level demonstrations and do not claim asymptotic statistical significance.
 
