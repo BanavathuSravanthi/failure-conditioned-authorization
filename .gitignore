@@ -71,3 +71,6 @@ Thumbs.db
 
 # Ensure results folder is explicitly NOT ignored per spec rules
 !results/
+
+# Exclude local interactive web demonstration diagnostic logs from official results
+results/live_demo_logs/

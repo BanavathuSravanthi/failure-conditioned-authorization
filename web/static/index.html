@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FCA–IGAR Research Console & Demonstration</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+  <!-- Masthead -->
+  <header class="masthead">
+    <div class="masthead-title">
+      <h1>Failure-Conditioned Authorization (FCA) with IGAR</h1>
+      <span class="badge-version">Spec v0.3.9 Frozen</span>
+    </div>
+    <div class="integrity-status" id="system-status-indicator">
+      <span class="status-dot"></span>
+      <span id="status-text">Verifying System Invariants...</span>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="console-tabs">
+    <button class="tab-btn active" data-tab="tab-overview">1. Overview & Architecture</button>
+    <button class="tab-btn" data-tab="tab-run">2. Run Experiment (Live Mock)</button>
+    <button class="tab-btn" data-tab="tab-trace">3. Execution Trace</button>
+    <button class="tab-btn" data-tab="tab-results">4. Research Results & Hypotheses</button>
+    <button class="tab-btn" data-tab="tab-live">5. Live Agent Demo (Supplementary)</button>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- ==================================================================== -->
+    <!-- TAB 1: OVERVIEW & ARCHITECTURE                                       -->
+    <!-- ==================================================================== -->
+    <div class="tab-pane active" id="tab-overview">
+      <h2 class="section-heading">Research Overview & Architecture</h2>
+      <p class="section-desc">
+        Failure-Conditioned Authorization (FCA) with ILP-Guided Authorization Recovery (IGAR) prevents premature or unnecessary privilege escalation in autonomous agents by enforcing a bounded recovery window on sub-HIGH tool failures.
+      </p>
+
+      <div class="card">
+        <h3 class="card-title">Core Security Mechanism</h3>
+        <p style="margin-bottom: 12px; color: var(--text-secondary);">
+          When an agent operation below <code>HIGH</code> privilege fails, typical baseline agents immediately seek elevated permissions or request human approval. FCA interposes at the Controller level:
+        </p>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">1. Freeze Escalation</div>
+            <div class="stat-desc">Escalation to <code>HIGH</code> tools is frozen immediately. Premature escalation requests are intercepted at the controller without invoking the Approver.</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">2. Recovery Window</div>
+            <div class="stat-desc">Opens an active recovery window with budget \(K\) (or \(B\) sized by IGAR). Only designated recovery calls execute and decrement the budget.</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">3. Cost-Gap Sizing (IGAR)</div>
+            <div class="stat-desc">IGAR sizes budget \(B\) dynamically from the ILP-derived permission-cost gap \(\Delta C\). Infeasible Class B tasks receive \(B=0\) to avoid wasted retries.</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">4. Post-Exhaustion Mode</div>
+            <div class="stat-desc">Once the recovery budget reaches 0, the window closes. In <code>open</code> mode, ordinary calls resume and legitimate escalation reaches the Approver.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">IGAR Permission-Cost & Budget Allocation Model (Spec Section 4)</h3>
+        <p style="margin-bottom: 12px; color: var(--text-secondary);">
+          IGAR reuses MiniScope's existing ILP-derived permission-cost structure without re-solving the integer linear program after failure:
+        </p>
+        <div class="callout">
+          <strong>Per-Application Cost Hierarchy (\(C_{\text{range}} = \text{cost}(\text{HIGH}) - \text{cost}(\text{LOW}) = 5\)):</strong><br>
+          • <strong>Gmail</strong>: LOW=1 (create_draft), MEDIUM=3 (send_draft), HIGH=6 (delete_thread) &nbsp;→&nbsp; \(\Delta C = 3 - 1 = 2\) &nbsp;→&nbsp; \(B = 1\)<br>
+          • <strong>Slack</strong>: LOW=1 (read_channel), MEDIUM=5 (post_message), HIGH=6 (delete_workspace) &nbsp;→&nbsp; \(\Delta C = 5 - 1 = 4\) &nbsp;→&nbsp; \(B = 2\)<br>
+          • <strong>Drive</strong>: LOW=1 (search_files), MEDIUM=4 (upload_file), HIGH=6 (manage_permissions) &nbsp;→&nbsp; \(\Delta C = 4 - 1 = 3\) &nbsp;→&nbsp; \(B = 2\)<br><br>
+          <strong>Integer Round-Half-Up Budget Formula:</strong><br>
+          $$\text{If not feasible (Class B): } B = 0 \quad \text{Else: } B = \text{clip}\left(1 + \left\lfloor \frac{2(K_{\max} - 1)\Delta C + C_{\text{range}}}{2 C_{\text{range}}} \right\rfloor, 1, K_{\max}\right)$$
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Experimental Conditions Reference (C1–C9)</h3>
+        <div class="table-wrapper">
+          <table class="data-table" id="conditions-table">
+            <thead>
+              <tr>
+                <th>Condition</th>
+                <th>Name</th>
+                <th>Recovery Target</th>
+                <th>Budget Policy</th>
+                <th>Scripted Tier</th>
+                <th>LLM Pilot Tier</th>
+              </tr>
+            </thead>
+            <tbody id="conditions-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">System Invariant Verification Status</h3>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Frozen Spec Hash</div>
+            <div class="stat-value" style="font-size: 13px;" id="stat-spec-hash">Loading...</div>
+            <div class="stat-desc" id="stat-spec-status">Checking SHA-256...</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Defence Notes Hash</div>
+            <div class="stat-value" style="font-size: 13px;" id="stat-defence-hash">Loading...</div>
+            <div class="stat-desc" id="stat-defence-status">Checking SHA-256...</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">LLM Pilot Dataset</div>
+            <div class="stat-value" id="stat-dataset-count">324 Episodes</div>
+            <div class="stat-desc" id="stat-dataset-status">Checking checksums...</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Scripted Benchmark</div>
+            <div class="stat-value">252 Episodes</div>
+            <div class="stat-desc">Strict & Open Modes Verified</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 2: RUN EXPERIMENT (INTERACTIVE MOCK DEMONSTRATION)               -->
+    <!-- ==================================================================== -->
+    <div class="tab-pane" id="tab-run">
+      <h2 class="section-heading">Interactive Experiment Demonstration</h2>
+      <p class="section-desc">
+        Configure and execute an on-demand scenario episode in memory using the deterministic scripted agent and mock environment.
+      </p>
+
+      <div class="callout">
+        <strong>Execution Guardrails:</strong> This interactive runner runs entirely in memory using the mock Gmail, Slack, and Drive tool integrations. It does not invoke live LLM APIs, incurs zero financial cost, and <strong>does not modify official research logs or datasets</strong>.
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Experiment Parameters</h3>
+        <div class="controls-grid">
+          <div class="form-group">
+            <label for="select-app">Application</label>
+            <select class="form-control" id="select-app">
+              <option value="all">All Applications (18)</option>
+              <option value="gmail" selected>Gmail (6 scenarios)</option>
+              <option value="slack">Slack (6 scenarios)</option>
+              <option value="drive">Drive (6 scenarios)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="select-scenario">Scenario</label>
+            <select class="form-control" id="select-scenario">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="select-condition">Condition</label>
+            <select class="form-control" id="select-condition">
+              <option value="C8" selected>C8: ILP-Guided Authorization Recovery (IGAR)</option>
+              <option value="C7">C7: Failure-Conditioned Authorization (FCA, K=2)</option>
+              <option value="C9">C9: Candidate-Directed with Fixed Budget (K=2)</option>
+              <option value="C5">C5: Approval Gate Baseline</option>
+              <option value="C6">C6: Retry-then-Approval Baseline</option>
+              <option value="C1">C1: Vanilla Least-Privilege Baseline</option>
+              <option value="C4">C4: Local Retry Baseline</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="select-mode">Post-Exhaustion Mode</label>
+            <select class="form-control" id="select-mode">
+              <option value="open" selected>open (Thesis-faithful & LLM default)</option>
+              <option value="strict">strict (Blocks non-HIGH post-exhaustion)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Scenario Context Box -->
+        <div class="card" style="background: var(--bg-subtle); border-color: var(--border-color); margin-bottom: 16px;">
+          <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 6px;" id="scenario-card-title">Scenario Details</h4>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;" id="scenario-card-task">Loading scenario task...</p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="scenario-card-badges">
+            <!-- Badges populated dynamically -->
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-run-demo">
+          <span>▶ Execute Interactive Episode</span>
+        </button>
+      </div>
+
+      <!-- Execution Outcome Summary -->
+      <div class="card" id="demo-summary-card" style="display: none;">
+        <h3 class="card-title">
+          <span>Execution Outcome</span>
+          <span class="badge badge-terminal" id="demo-terminal-badge">COMPLETED_RECOVERED</span>
+        </h3>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Terminal State</div>
+            <div class="stat-value" id="demo-stat-terminal" style="font-size: 15px;">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Actual Recovery Calls</div>
+            <div class="stat-value" id="demo-stat-rc">-</div>
+            <div class="stat-desc">Budget decremented</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Blocked Attempts</div>
+            <div class="stat-value" id="demo-stat-blocked">-</div>
+            <div class="stat-desc">Freeze intercepted</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Total Calls</div>
+            <div class="stat-value" id="demo-stat-total">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">HIGH Grants</div>
+            <div class="stat-value" id="demo-stat-grants">-</div>
+          </div>
+        </div>
+        <button class="btn-secondary" id="btn-view-trace-tab">View Complete Step-by-Step Trace →</button>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 3: EXECUTION TRACE                                               -->
+    <!-- ==================================================================== -->
+    <div class="tab-pane" id="tab-trace">
+      <h2 class="section-heading">Execution Event Trace</h2>
+      <p class="section-desc">
+        Inspect the granular step-by-step event stream showing initial tool failures, candidate selection, budget sizing, controller freeze blocks, and authorization decisions.
+      </p>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+          <h3 class="card-title" style="margin-bottom: 0;">Trace Source</h3>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-secondary active" id="btn-source-interactive">Interactive Demo Run</button>
+            <button class="btn-secondary" id="btn-source-historical">Historical Research Log</button>
+          </div>
+        </div>
+
+        <!-- Historical Selector (hidden by default) -->
+        <div id="historical-selector-panel" style="display: none; padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 12px;">
+          <div class="controls-grid">
+            <div class="form-group">
+              <label>Evidence Tier</label>
+              <select class="form-control" id="hist-tier">
+                <option value="llm" selected>Live LLM Pilot (324 Episodes)</option>
+                <option value="scripted">Scripted Benchmark (252 Episodes)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Condition</label>
+              <select class="form-control" id="hist-condition">
+                <option value="C8" selected>C8 (IGAR)</option>
+                <option value="C7">C7 (FCA K=2)</option>
+                <option value="C9">C9 (Candidate K=2)</option>
+                <option value="C5">C5 (Approval Gate)</option>
+                <option value="C6">C6 (Retry-Approval)</option>
+                <option value="C1">C1 (Vanilla)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Scenario</label>
+              <select class="form-control" id="hist-scenario">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group" id="hist-trial-group">
+              <label>Trial Number</label>
+              <select class="form-control" id="hist-trial">
+                <option value="1" selected>Trial 1</option>
+                <option value="2">Trial 2</option>
+                <option value="3">Trial 3</option>
+              </select>
+            </div>
+            <div class="form-group" id="hist-mode-group" style="display: none;">
+              <label>Post-Exhaustion Mode</label>
+              <select class="form-control" id="hist-mode">
+                <option value="open" selected>open</option>
+                <option value="strict">strict</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary" id="btn-load-historical">Load Historical Log</button>
+        </div>
+      </div>
+
+      <!-- Timeline Display -->
+      <div class="card">
+        <h3 class="card-title">
+          <span id="timeline-title">Event Sequence</span>
+          <span class="badge badge-tool" id="timeline-subtitle">No events loaded yet</span>
+        </h3>
+        <div class="timeline" id="timeline-container">
+          <p style="color: var(--text-muted); font-size: 13px;">Execute an interactive demonstration or select a historical log to view its execution trace.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 4: RESEARCH RESULTS & HYPOTHESES                                 -->
+    <!-- ==================================================================== -->
+    <div class="tab-pane" id="tab-results">
+      <h2 class="section-heading">Official Research Results & Findings</h2>
+      <p class="section-desc">
+        Authoritative metrics computed directly from committed experimental datasets. Results from scripted and live LLM tiers are kept strictly separated and never pooled.
+      </p>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <button class="btn-secondary active" id="btn-view-llm">Live LLM Pilot (324 Episodes)</button>
+        <button class="btn-secondary" id="btn-view-scripted">Scripted Benchmark (252 Episodes)</button>
+        <button class="btn-secondary" id="btn-view-hypotheses">Hypothesis Verdicts (H1–H8)</button>
+      </div>
+
+      <!-- LLM Pilot Section -->
+      <div id="section-results-llm">
+        <div class="card">
+          <h3 class="card-title">Live LLM Pilot: Condition Cohort Metrics (post_exhaustion=open)</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+            Evaluated on <code>gemini-3.1-flash-lite</code> across 18 benchmark scenarios with 3 deterministic trials per scenario (54 episodes per condition).
+          </p>
+          <div class="table-wrapper">
+            <table class="data-table" id="table-llm-metrics">
+              <thead>
+                <tr>
+                  <th>Condition</th>
+                  <th>Episodes</th>
+                  <th>Class A</th>
+                  <th>Class B</th>
+                  <th>PDR</th>
+                  <th>SCR</th>
+                  <th>RSR</th>
+                  <th>GUER</th>
+                  <th>AUER</th>
+                  <th>UGR</th>
+                  <th>LES</th>
+                  <th>Mean RC</th>
+                  <th>Total Blocked</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-llm-metrics">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Per-Scenario Detailed Breakdown</h3>
+          <div class="table-wrapper">
+            <table class="data-table" id="table-llm-per-scenario">
+              <thead>
+                <tr>
+                  <th>Scenario ID</th>
+                  <th>App</th>
+                  <th>Class</th>
+                  <th>Depth</th>
+                  <th>Condition</th>
+                  <th>Completed Trials</th>
+                  <th>Total Trials</th>
+                  <th>RSR</th>
+                  <th>SCR</th>
+                  <th>Mean RC</th>
+                  <th>Total Blocked</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-llm-per-scenario">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scripted Benchmark Section (hidden by default) -->
+      <div id="section-results-scripted" style="display: none;">
+        <div class="card">
+          <h3 class="card-title">Scripted Benchmark: Strict vs. Open Mode Comparison (252 Episodes)</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+            Deterministic scripted agent evaluating conditions C1, C4, C5, C6, C7, C8, and C9 side-by-side without pooling.
+          </p>
+          <div class="table-wrapper">
+            <table class="data-table" id="table-scripted-metrics">
+              <thead>
+                <tr>
+                  <th>Condition</th>
+                  <th>Mode</th>
+                  <th>Episodes</th>
+                  <th>PDR</th>
+                  <th>SCR</th>
+                  <th>RSR</th>
+                  <th>GUER</th>
+                  <th>AUER</th>
+                  <th>UGR</th>
+                  <th>LES</th>
+                  <th>Total RC</th>
+                  <th>Mean RC</th>
+                  <th>Blocked</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-scripted-metrics">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hypotheses Section (hidden by default) -->
+      <div id="section-results-hypotheses" style="display: none;">
+        <div class="card">
+          <h3 class="card-title">Thesis Hypotheses Evaluation (H1–H8)</h3>
+          <p style="font-size: 12px; color: var(--text-muted);">
+            Evaluated strictly against Spec Section 0.1 mappings, metric definitions, and tier requirements.
+          </p>
+          <div class="hypothesis-grid" id="hypotheses-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 5: LIVE AGENT DEMO (SUPPLEMENTARY)                               -->
+    <!-- ==================================================================== -->
+    <div class="tab-pane" id="tab-live">
+      <h2 class="section-heading">Live Agent Demonstration <span class="badge badge-live">Supplementary Tier</span></h2>
+      <p class="section-desc">
+        Execute genuine live LLM tool-calling episodes via external proprietary APIs (Google Gemini or OpenAI) through the authentic FCA Controller, Approver, and Mock Environment.
+      </p>
+
+      <div class="alert-live-disclaimer">
+        <strong>⚠️ Supplementary Demonstration Notice:</strong> This interactive console issues real-time external API calls to proprietary LLM providers billed to your configured account. All live demonstration runs are supplementary evaluations executed in real time and maintained strictly outside the frozen 324-episode empirical research dataset. No API calls are made on page load.
+      </div>
+
+      <div class="alert-live-error" id="live-error-box">
+        <!-- Dynamically populated on error -->
+      </div>
+
+      <!-- Credential Status Card -->
+      <div class="card">
+        <h3 class="card-title">API Credential Status (Server Environment)</h3>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
+          Credentials are read securely from server environment variables only. Secret keys are never transmitted to the browser, displayed in logs, or written to client-side code.
+        </p>
+        <div class="credentials-grid">
+          <div class="credential-box">
+            <div>
+              <strong>Google Gemini</strong><br>
+              <span class="mono" style="font-size: 11px; color: var(--text-muted);">GEMINI_API_KEY / GOOGLE_API_KEY</span>
+            </div>
+            <span class="status-pill status-pill-missing" id="status-pill-gemini">Checking...</span>
+          </div>
+          <div class="credential-box">
+            <div>
+              <strong>OpenAI</strong><br>
+              <span class="mono" style="font-size: 11px; color: var(--text-muted);">OPENAI_API_KEY</span>
+            </div>
+            <span class="status-pill status-pill-missing" id="status-pill-openai">Checking...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execution Configuration Form -->
+      <div class="card">
+        <h3 class="card-title">Live Episode Configuration</h3>
+        <div class="controls-grid">
+          <!-- Provider -->
+          <div class="control-group">
+            <label for="live-select-provider">LLM Provider</label>
+            <select id="live-select-provider" class="form-control">
+              <option value="gemini" selected>Google Gemini (Proprietary API)</option>
+              <option value="openai">OpenAI (Chat Completions API)</option>
+            </select>
+          </div>
+
+          <!-- Model -->
+          <div class="control-group">
+            <label for="live-select-model">Model Identifier</label>
+            <select id="live-select-model" class="form-control">
+              <!-- Dynamically populated based on provider -->
+            </select>
+          </div>
+
+          <!-- App Filter -->
+          <div class="control-group">
+            <label for="live-select-app">Application Filter</label>
+            <select id="live-select-app" class="form-control">
+              <option value="all" selected>All Applications (Gmail, Slack, Drive)</option>
+              <option value="gmail">Gmail</option>
+              <option value="slack">Slack</option>
+              <option value="drive">Google Drive</option>
+            </select>
+          </div>
+
+          <!-- Scenario Selection -->
+          <div class="control-group">
+            <label for="live-select-scenario">Scenario</label>
+            <select id="live-select-scenario" class="form-control">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+
+          <!-- Condition Selection -->
+          <div class="control-group">
+            <label for="live-select-condition">Experimental Condition</label>
+            <select id="live-select-condition" class="form-control">
+              <option value="C8" selected>C8: ILP-Guided Authorization Recovery (IGAR)</option>
+              <option value="C7">C7: Failure-Conditioned Authorization (Fixed Budget B=2)</option>
+              <option value="C9">C9: Cost-Guided Fallback Target</option>
+              <option value="C5">C5: Approval Gate Baseline</option>
+              <option value="C6">C6: Retry-then-Approval</option>
+              <option value="C1">C1: Vanilla Least-Privilege Baseline</option>
+            </select>
+          </div>
+
+          <!-- Post-Exhaustion Mode -->
+          <div class="control-group">
+            <label for="live-select-mode">Post-Exhaustion Mode</label>
+            <select id="live-select-mode" class="form-control">
+              <option value="open" selected>open (Unfreezes escalation; Spec Sec 2 canonical)</option>
+              <option value="strict">strict (Permanently denies escalation)</option>
+            </select>
+          </div>
+
+          <!-- Temperature -->
+          <div class="control-group">
+            <label for="live-input-temp">Temperature</label>
+            <input type="number" id="live-input-temp" class="form-control" value="0.0" min="0.0" max="1.0" step="0.1">
+          </div>
+
+          <!-- Seed -->
+          <div class="control-group">
+            <label for="live-input-seed">Random Seed</label>
+            <input type="number" id="live-input-seed" class="form-control" value="2001">
+          </div>
+        </div>
+
+        <!-- Scenario Context Preview -->
+        <div id="live-scenario-preview" style="margin-top: 14px; padding: 12px; background: var(--bg-subtle); border-radius: 4px; border: 1px solid var(--border-color); font-size: 12.5px;">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Explicit User Confirmation Required -->
+        <div class="confirmation-row">
+          <input type="checkbox" id="live-confirm-chk">
+          <label for="live-confirm-chk">
+            I understand and confirm that clicking Execute will issue an authentic, paid external API call to the selected LLM provider using the credentials configured in the server environment.
+          </label>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <button id="btn-run-live" class="btn btn-primary" disabled>
+            <span>⚡ Execute Live LLM Episode</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Execution Results Display (Hidden until run) -->
+      <div id="live-results-container" style="display: none;">
+        <!-- Live Run Meta Card -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <h3 class="card-title" style="margin-bottom: 0;">Live Run Telemetry & Execution Summary</h3>
+            <span class="badge badge-live" id="live-dataset-badge">Supplementary (Outside 324 Pilot)</span>
+          </div>
+
+          <div class="live-metrics-bar">
+            <div class="live-metric-item">
+              <span class="live-metric-label">Provider / Model</span>
+              <span class="live-metric-val" id="live-metric-model" style="font-size: 13px;">—</span>
+            </div>
+            <div class="live-metric-item">
+              <span class="live-metric-label">Latency</span>
+              <span class="live-metric-val" id="live-metric-latency">—</span>
+            </div>
+            <div class="live-metric-item">
+              <span class="live-metric-label">Prompt Tokens</span>
+              <span class="live-metric-val" id="live-metric-prompt-tokens">—</span>
+            </div>
+            <div class="live-metric-item">
+              <span class="live-metric-label">Completion Tokens</span>
+              <span class="live-metric-val" id="live-metric-completion-tokens">—</span>
+            </div>
+            <div class="live-metric-item">
+              <span class="live-metric-label">Total Tokens</span>
+              <span class="live-metric-val" id="live-metric-total-tokens">—</span>
+            </div>
+            <div class="live-metric-item">
+              <span class="live-metric-label">Estimated Cost</span>
+              <span class="live-metric-val" id="live-metric-cost" style="color: var(--accent-orange);">—</span>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">Terminal Outcome</div>
+              <div class="stat-value" id="live-stat-terminal" style="font-size: 14px;">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Recovery Calls</div>
+              <div class="stat-value" id="live-stat-rc">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Blocked Attempts</div>
+              <div class="stat-value" id="live-stat-blocked">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Total Executed Calls</div>
+              <div class="stat-value" id="live-stat-total">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">HIGH Requests / Grants</div>
+              <div class="stat-value" id="live-stat-grants">—</div>
+            </div>
+          </div>
+
+          <!-- IGAR Parameter Box -->
+          <div class="callout" style="margin-top: 14px;" id="live-igar-details">
+            <!-- Dynamically populated with failed tool, candidate, delta_C, and B -->
+          </div>
+        </div>
+
+        <!-- Live Step-by-Step Execution Timeline Card -->
+        <div class="card">
+          <h3 class="card-title">Live Step-by-Step Execution Trajectory</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;" id="live-timeline-subtitle">
+            Authentic sequential event trace from controller and environment.
+          </p>
+          <div class="timeline" id="live-timeline-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Conversation Inspector Card -->
+        <div class="card">
+          <h3 class="card-title">Agent Conversation History (Information-Isolation Verified)</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+            Audited conversation exchange between the genuine LLM and the environment tools. Zero forbidden labels exposed.
+          </p>
+          <div class="conversation-container" id="live-conversation-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div>FCA–IGAR Research Console • Autonomous Agent Privilege Containment Framework</div>
+    <div style="font-family: var(--font-mono);">Spec Version: v0.3.9 • Read-Only Research Archive</div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

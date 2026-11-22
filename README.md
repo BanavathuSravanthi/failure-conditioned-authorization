@@ -97,18 +97,19 @@ failure-conditioned-authorization/
 │   └── FCA_IGAR_defence_notes_v0_3_9.md         # Immutable defence notes & thesis alignment
 ├── scenarios/
 │   ├── scenario_001/ ... scenario_018/          # 18 five-file scenario directories
-│   └── scenario_manifest.yaml                   # Scenario registry and metadata
+│   └── scenario_index.yaml                      # Scenario registry and metadata
 ├── src/
 │   ├── __init__.py
 │   ├── igar_budget.py         # Integer RHU, cost-gap formula, candidate selection
 │   ├── approver.py            # Deterministic label-blind approver & policy loader
 │   ├── controller.py          # FCA/IGAR controller state machine, routing, generic denial
-│   ├── mock_env.py            # Simulated tool environments (Gmail, Slack, Drive)
+│   ├── mock_environment.py    # Simulated tool environments (Gmail, Slack, Drive)
 │   ├── scripted_agent.py      # Spec-compliant scripted agent (MEDIUM -> LOW -> HIGH)
 │   ├── experiment_harness.py  # Automated experiment orchestration and event emission
 │   ├── jsonl_validator.py     # Section 9 event stream validator
 │   ├── analysis.py            # Authoritative metric aggregator (GUER, AUER, UGR, etc.)
-│   ├── scenario_validator.py  # Five-file scenario consistency auditor
+│   ├── scenario_validator.py  # Five-file scenario consistency auditor & validator
+│   ├── scenario_loader.py     # Scenario YAML loader with label isolation
 │   ├── llm_provider.py        # LLM providers: Gemini, OpenAI, and MockLLMProvider
 │   └── llm_agent.py           # Autonomous tool-calling LLM agent with prompt versioning
 ├── scripts/
@@ -116,13 +117,16 @@ failure-conditioned-authorization/
 │   ├── run_llm_pilot.py            # Orchestrates 324-episode live LLM pilot
 │   ├── run_single_live_episode.py  # Single live LLM episode diagnostic runner
 │   ├── generate_scenarios.py       # Scaffolds 18 five-file scenario folders
-│   └── validate_scenarios.py       # CLI wrapper for scenario validation
+│   └── run_web_ui.py               # Research demonstration web interface runner
+├── web/
+│   ├── app.py                      # FastAPI demonstration backend
+│   └── static/                     # Vanilla HTML/CSS/JS frontend dashboard
 ├── tests/
 │   ├── __init__.py
 │   ├── test_budget.py         # Budget math & integer RHU tests (24 tests)
 │   ├── test_approver.py       # Approver policy & label blindness canary tests (40 tests)
 │   ├── test_controller.py     # Controller routing & freeze lifecycle tests (13 tests)
-│   ├── test_spec_compliance.py# Mandatory 29 specification tests (M3 verification)
+│   ├── test_mandatory_29.py   # Mandatory 29 specification tests (M3 verification)
 │   ├── test_harness.py        # Harness execution & validator tests
 │   └── test_llm_agent.py      # Live provider, isolation canary, & tool-call tests
 ├── results/
@@ -132,14 +136,13 @@ failure-conditioned-authorization/
 │   ├── final_experiment_summary.md # Comprehensive Milestone 3 report
 │   ├── reproducibility_report.md   # Scripted reproduction guidelines
 │   └── llm_pilot/             # Milestone 4 Live LLM Pilot artifacts
-│       ├── raw_logs/          # 191 validated JSONL episode streams
+│       ├── raw_logs/          # 324 validated LLM pilot episodes
 │       ├── metrics.csv        # Interim LLM metrics
 │       ├── llm_pilot_summary.md # Interim evaluation summary
 │       ├── pilot_summary.md   # Execution overview
 │       ├── comparison_scripted_vs_llm.md # Scripted vs. LLM analysis
 │       └── reproducibility_report.md     # LLM pilot reproduction guidelines
 ├── .gitignore
-├── LICENSE
 └── README.md
 ```
 
