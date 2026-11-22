@@ -64,7 +64,7 @@ Rather than using a fixed recovery budget, IGAR sizes the recovery budget ($B$) 
 
 ### Experimental Matrices
 - **Scripted Experiment Matrix**: Evaluates conditions **C1, C4, C5, C6, C7, C8, C9** across all 18 scenarios in both `strict` and `open` modes ($18 \times 7 \times 2 = \mathbf{252}$ completed episodes). C2 is designated optional; C3 is skipped as natural-language prompt adherence requires an LLM.
-- **Live LLM Pilot Matrix**: Evaluates conditions **C1, C5, C6, C7, C8, C9** exclusively under `open` post-exhaustion mode across all 18 scenarios and 3 independent trials ($18 \times 6 \times 3 = \mathbf{324}$ planned episodes). Currently, 191 episodes are completed, with 133 remaining due to daily API free-tier rate limit ceilings.
+- **Live LLM Pilot Matrix**: Evaluates conditions **C1, C5, C6, C7, C8, C9** exclusively under `open` post-exhaustion mode across all 18 scenarios and 3 independent trials ($18 \times 6 \times 3 = \mathbf{324}$ completed episodes). 100% matrix execution complete on `gemini-3.1-flash-lite` with zero mock fallback.
 
 ---
 
@@ -221,7 +221,7 @@ All reported metrics are computed directly from raw structured JSONL episode log
 - [x] **Milestone 2 Stage 4**: Five-file scenario architecture across all 18 scenarios and consistency validator (`src/scenario_validator.py`).
 - [x] **Milestone 2 Stage 5**: Mock tools (Gmail, Slack, Drive), scripted agent (`src/scripted_agent.py`), and experiment harness (`src/experiment_harness.py`).
 - [x] **Milestone 3**: Full 29 mandatory specification verification tests passing; complete 252-episode scripted benchmark executed across `strict` and `open` modes.
-- [x] **Milestone 4 (In Progress)**: Live LLM pilot on `gemini-3.1-flash-lite` (`post_exhaustion=open`). 191 / 324 episodes completed; 133 remaining paused at daily API rate limit ceiling. 100% ground-truth isolation verified.
+- [x] **Milestone 4**: Full live LLM pilot completed on `gemini-3.1-flash-lite` (`post_exhaustion=open`). Exactly 324 / 324 planned episodes executed and validated; 100% ground-truth isolation verified.
 - [x] **Test Suite**: 156 passed, 0 failed, 1 skipped (157 total).
 
 ### Declared Research Limitations
